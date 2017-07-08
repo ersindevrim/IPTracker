@@ -21,7 +21,7 @@ function firstIPControl
     nmap -sn 192.168.47.0/24 | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' > firstIPControl.txt
     while read line 
     do
-    IPTemp="$line"
+        IPTemp="$line"
         ex -s +"g/$IPTemp/d" -cwq firstIPControl.txt
     done < IPLib.txt
 }
