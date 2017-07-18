@@ -6,7 +6,7 @@ function sendMail
    numberOfFindedLines=$(grep -c '1' mail.txt)
    if [ "$numberOfFindedLines" != 0 ]
    then
-       mail unal.surmeli@tegsoft.com < mail.txt -s "network activity"
+       mail mail@mail.com < mail.txt -s "network activity"
    fi
 }
 
