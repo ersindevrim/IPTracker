@@ -1,67 +1,64 @@
 #! /bin/bash
-# Comment Line
+
+# Utility Functions Begin
 function sendMail
 {
-    mail - s "IP" entegre95@gmail.com < mail.txt
+   numberOfFindedLines=$(grep -c '1' mail.txt)
+   if [ "$numberOfFindedLines" != 0 ]
+   then
+       mail unal.surmeli@tegsoft.com < mail.txt -s "network activity"
+   fi
 }
 
-function IPMovements
+function IPActivities #difference between first scan and second scan
 {
-    echo "Disconnected IPs" > mail.txt
-    diff firstIPControl.txt secondIPControl.txt | grep '<' >> mail.txt
-    echo "Connected IPs" >> mail.txt
-    diff firstIPControl.txt secondIPControl.txt | grep '>' >> mail.txt
-    sendMail
+   echo "Disconnected IPs" > mail.txt
+   diff firstIPControl.txt secondIPControl.txt | grep '<' >> mail.txt
+   echo "Connected IPs" >> mail.txt
+   diff firstIPControl.txt secondIPControl.txt | grep '>' >> mail.txt
+   sendMail
 }
 
-# cat file1.txt>>file2.txt
-
-function firstIPControl
+function IPGenerate #IP Scans
 {
-    nmap -sn 192.168.47.0/24 | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' > firstIPControl.txt
-    while read line 
-    do
+   nmap -sP 192.168.47.0/24 | awk '/Host/{printf $2;}/MAC Address:/{print "-MAC:"$3;}/{printf""}/' | sort > $1
+
+   while read line  #Remove trusted IPs from scanned IP list
+   do
         IPTemp="$line"
-        ex -s +"g/$IPTemp/d" -cwq firstIPControl.txt
-    done < IPLib.txt
+        ex -s +"g/$IPTemp-/d" -cwq $1
+   done < IPList.txt
 }
 
-function secondIPControl
+function firstRunCheckAndInit
 {
-    nmap -sn 192.168.47.0/24 | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' > secondIPControl.txt
-    while read line 
-    do
-        IPTemp="$line"
-        ex -s +"g/$IPTemp/d" -cwq secondIPControl.txt
-    done < IPLib.txt
+       if [ ! -f firstIPControl.txt ]
+       then #if file does not exist
+
+           > firstIPControl.txt
+           > secondIPControl.txt
+       fi
+
 }
 
-function firstStart
+function run
 {
-    numberOfFindedLine=$(grep -c '1' firstIPControl.txt)
-
-    if [ "$numberOfFindedLine" != 0 ]
-    then
-        secondIPControl
-        IPMovements
-    fi
+   IPGenerate secondIPControl.txt
+   IPActivities
+   cat secondIPControl.txt > firstIPControl.txt
 }
 
-#First Start Check
-ls firstIPControl.txt && firstStart ||{ echo "Creating..."
-    > firstIPControl.txt
-}
+# Utility Functions End
+
+## Program Start Here
 
 #Checking NMAP
-nmap -sn 192.168.47.113 ||{ echo "nmap is not found... installing..." 
-    sudo apt-get install nmap
+nmap -sP 192.168.47.113 ||{ echo "nmap is not found..."
+   exit 1
 }
 
-#Infinite Control Loop
-while :
-do
-    firstIPControl
-    sleep 3600s 
-    secondIPControl
-    IPMovements  
-done
+#Creating Salt Trusted IP list
+cut -d ':' -f2 < IPLib.txt >IPList.txt
+
+firstRunCheckAndInit
+run
